@@ -32,6 +32,9 @@ library
       src
   build-depends:
       base >=4.7 && <5
+    , telegram-bot-simple
+    , text
+    , unordered-containers
   default-language: Haskell2010
 
 executable day-planner-exe
@@ -44,6 +47,9 @@ executable day-planner-exe
   build-depends:
       base >=4.7 && <5
     , day-planner
+    , telegram-bot-simple
+    , text
+    , unordered-containers
   default-language: Haskell2010
 
 test-suite day-planner-test
@@ -57,4 +63,7 @@ test-suite day-planner-test
   build-depends:
       base >=4.7 && <5
     , day-planner
+    , telegram-bot-simple
+    , text
+    , unordered-containers
   default-language: Haskell2010
