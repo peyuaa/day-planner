@@ -77,7 +77,7 @@ todoBot3 = BotApp
         reply (toReplyMessage "Available todo lists")
           { replyMessageReplyMarkup = Just (SomeInlineKeyboardMarkup listsKeyboard) }
       Show "" -> model <# do
-        return (Show defaultListName)
+        return (Show (currentList model))
       Show name -> model <# do
         let tasks = concat (HashMap.lookup name (todoLists model))
         if null tasks
@@ -93,7 +93,7 @@ todoBot3 = BotApp
       [ "Hello! I'm your personal planner bot!"
       , ""
       , "You can add new tasks to your to-do list just by typing it!"
-      , "You can also use /add <task> command to do that explicitely."
+      , "You can also use /add <t command to do that explicitely."
       , "To remove an task use /remove <task> command."
       , "To mark a task as completed, use /mark_completed <task>."
       , ""
