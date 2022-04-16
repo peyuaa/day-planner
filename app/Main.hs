@@ -11,7 +11,7 @@ import Telegram.Bot.API
 import Telegram.Bot.Simple
 import Telegram.Bot.Simple.UpdateParser
 
-data Status = NotCompleted | Сompleted deriving (Show, Eq)
+data Status = NotCompleted | Completed deriving (Show, Eq)
 
 type Task =  Text
 data TaskEntity = TaskEntity Task Status deriving (Show, Eq)
@@ -37,7 +37,7 @@ data Action
   | SwitchToList Text
   | ShowAll
   | Show Text
-  -- | MarkCompleted Text
+  | MarkCompleted Text
   deriving (Show, Read)
 
 todoBot3 :: BotApp Model Action
@@ -57,7 +57,7 @@ todoBot3 = BotApp
       <|> SwitchToList <$> command "switch_to_list"
       <|> Show         <$> command "show"
       <|> ShowAll      <$  command "show_all"
-      -- <|> MarkCompleted <$> command "mark_completed"
+      <|> MarkCompleted <$> command "mark_completed"
       <|> callbackQueryDataRead
 
     handleAction :: Action -> Model -> Eff Action Model
@@ -65,10 +65,12 @@ todoBot3 = BotApp
       Start -> model <# do
         reply (toReplyMessage startMessage)
           { replyMessageReplyMarkup = Just (SomeReplyKeyboardMarkup startKeyboard) }
-      AddTask task -> addTask task model <# do
+      AddTask task -> addTask task model NotCompleted <# do
         replyText "Task added!"
       RemoveTask task -> removeTask task model <# do
         replyText "Task removed!"  
+      MarkCompleted task -> markCompleted task model <# do
+        replyText "Task completed!"
       SwitchToList name -> model { currentList = name } <# do
         replyText ("Switched to list «" <> name <> "»!") 
       ShowAll -> model <# do
@@ -81,7 +83,7 @@ todoBot3 = BotApp
         if null tasks
           then reply (toReplyMessage ("The list «" <> name <> "» is empty. Maybe try these starter options?"))
                  { replyMessageReplyMarkup = Just (SomeReplyKeyboardMarkup startKeyboard) }
-          else replyText (Text.replace "NotCompleted" "❌" (Text.replace "Сompleted" "✅" (Text.unlines ((map ((Text.drop 11) . Text.pack . show) tasks)))))
+          else replyText (Text.replace "Completed" "✅" (Text.replace "NotCompleted" "❌" (Text.unlines ((map ((Text.drop 11) . Text.pack . show) tasks)))))
 
       where
         listsKeyboard = InlineKeyboardMarkup
@@ -91,8 +93,9 @@ todoBot3 = BotApp
       [ "Hello! I'm your personal planner bot!"
       , ""
       , "You can add new tasks to your to-do list just by typing it!"
-      , "You can also use /add command to do that explicitely."
-      , "To remove an task use /remove command."
+      , "You can also use /add <task> command to do that explicitely."
+      , "To remove an task use /remove <task> command."
+      , "To mark a task as completed, use /mark_completed <task>."
       , ""
       , "You can manage multiple to-do lists:"
       , "Switch to a new named list with /switch_to_list <list>."
@@ -114,17 +117,16 @@ todoBot3 = BotApp
       , replyKeyboardMarkupInputFieldSelector = Nothing
       }
 
-addTask :: Task -> Model -> Model
-addTask task model = model
-  { todoLists = HashMap.insertWith (++) (currentList model) ([TaskEntity task NotCompleted]) (todoLists model) }
+addTask :: Task -> Model -> Status -> Model
+addTask task model status = model
+  { todoLists = HashMap.insertWith (++) (currentList model) ([TaskEntity task status]) (todoLists model) }
 
 removeTask :: Task -> Model -> Model
 removeTask task model = model
   { todoLists = HashMap.adjust (filter (/= (TaskEntity task NotCompleted))) (currentList model) (todoLists model)}
 
--- markCompleted :: Task -> Model -> Model
--- markCompleted task model = model
---   { todoLists = HashMap.adjust (map (\x-> if (x == (TaskEntity task NotCompleted)) then (x = (TaskEntity task Completed)) else x)) (currentList model) (todoLists model)}
+markCompleted :: Task -> Model -> Model
+markCompleted task model = (addTask task (removeTask task model) Completed)
 
 run :: Token -> IO ()
 run token = do
